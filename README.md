@@ -2,11 +2,14 @@
 
 Next.js 16 + React 19 + PostgreSQL を使用した Todo アプリケーションです。
 
+Auth.js (next-auth v5 beta) + GitHub OAuth による認証機能を含みます。
+
 ## 技術スタック
 
 - **Frontend**: Next.js 16, React 19, TypeScript 5, Tailwind CSS v4
 - **Backend**: Next.js API Routes
 - **Database**: PostgreSQL 17 (Docker)
+- **Authentication**: Auth.js (next-auth v5 beta), GitHub OAuth
 - **Testing**: Playwright
 - **Package Manager**: pnpm
 
@@ -20,15 +23,32 @@ Next.js 16 + React 19 + PostgreSQL を使用した Todo アプリケーション
 - `.env.local.example` - ローカル開発用設定テンプレート（Git 管理対象）
 - `.env.local` - ローカル上書き設定（Git 除外・オプション）
 
+### 認証関連の環境変数
+
+| 変数名               | 説明                      | 設定先（推奨） |
+| -------------------- | ------------------------- | -------------- |
+| `AUTH_SECRET`        | セッション暗号化キー      | `.env.local`   |
+| `AUTH_GITHUB_ID`     | GitHub OAuth Client ID    | `.env.local`   |
+| `AUTH_GITHUB_SECRET` | GitHub OAuth Client Secret| `.env.local`   |
+
+`AUTH_SECRET` は以下で生成できます：
+
+```bash
+openssl rand -base64 32
+```
+
 ### GitHub Actions での設定
 
-GitHub Actions（CI/CD）では以下の 3 つの Secrets が必要です：
+GitHub Actions（CI/CD）では以下の Secrets が必要です：
 
 | Secret 名           | 説明           | 例                     |
 | ------------------- | -------------- | ---------------------- |
 | `POSTGRES_DB`       | データベース名 | `todoapp`              |
 | `POSTGRES_USER`     | ユーザー名     | `todouser`             |
 | `POSTGRES_PASSWORD` | パスワード     | `your_secure_password` |
+| `AUTH_SECRET`       | 認証用シークレット | `generated_random_string` |
+| `AUTH_GITHUB_ID`    | GitHub Client ID | `Ov23...` |
+| `AUTH_GITHUB_SECRET`| GitHub Client Secret | `xxxx...` |
 
 `DATABASE_URL`は上記 3 つの Secrets から自動生成されます。
 
@@ -54,7 +74,23 @@ Docker なしでローカル開発する場合は`.env.local`を作成：
 cp .env.local.example .env.local
 ```
 
+`.env.local` に認証用の値を設定してください：
+
+```bash
+AUTH_SECRET="生成したランダム文字列"
+AUTH_GITHUB_ID="GitHub OAuth Client ID"
+AUTH_GITHUB_SECRET="GitHub OAuth Client Secret"
+```
+
 デフォルトの`.env`はすべての環境で共通です。
+
+### 2.5 GitHub OAuth App の作成
+
+1. GitHub → **Settings** → **Developer settings** → **OAuth Apps** → **New OAuth App**
+2. 以下を設定
+   - **Homepage URL**: `http://localhost:3000`
+   - **Authorization callback URL**: `http://localhost:3000/api/auth/callback/github`
+3. 発行された Client ID / Client Secret を `.env.local` に設定
 
 ### 3. Docker コンテナの起動
 
@@ -137,6 +173,8 @@ pnpm run prod:ps
 - ✅ Todo の削除
 - ✅ 完了状態の切り替え
 - ✅ ダークモード対応
+- ✅ GitHub ログイン / ログアウト
+- ✅ ログインユーザー表示
 - ✅ PostgreSQL でのデータ永続化
 - ✅ リアルタイムでデータベースと同期
 
@@ -146,6 +184,11 @@ pnpm run prod:ps
 - `POST /api/todos` - 新しい Todo を作成
 - `PUT /api/todos/[id]` - Todo を更新
 - `DELETE /api/todos/[id]` - Todo を削除
+- `GET /api/auth/signin` - サインインページ表示
+- `GET /api/auth/signin/github` - GitHub OAuth 開始
+- `GET/POST /api/auth/callback/github` - GitHub OAuth コールバック
+- `POST /api/auth/signout` - サインアウト
+- `GET /api/auth/session` - セッション情報取得
 
 ## プロジェクト構成
 
@@ -153,15 +196,18 @@ pnpm run prod:ps
 todo-app/
 ├── src/
 │   ├── app/
+│   │   ├── api/auth/[...nextauth]/route.ts # Auth.js ハンドラー
 │   │   ├── api/todos/          # API Routes
 │   │   │   ├── route.ts        # GET/POST endpoints
 │   │   │   └── [id]/route.ts   # PUT/DELETE endpoints
 │   │   ├── layout.tsx
 │   │   ├── page.tsx            # メインページ
 │   │   └── globals.css
+│   ├── auth.ts                 # Auth.js 設定（GitHub Provider）
 │   ├── components/             # UIコンポーネント
 │   │   ├── AddTask.tsx
 │   │   ├── ChangeTheme.tsx
+│   │   ├── HomeClient.tsx
 │   │   └── TaskList.tsx
 │   ├── context/
 │   │   └── themeContext.tsx    # テーマコンテキスト
@@ -175,7 +221,8 @@ todo-app/
 ├── docker-compose.prod.yml    # 本番: Next.js + PostgreSQL をDockerで起動
 ├── Dockerfile                 # Docker ビルド設定
 ├── init.sql                   # データベース初期化
-├── .env.dev                   # 開発環境変数（Git除外）
+├── .env                       # 共通環境変数
+├── .env.local                 # ローカル上書き環境変数（Git除外）
 ├── .env.local.example         # 環境変数テンプレート
 ├── next.config.mjs            # Next.js 設定
 ├── tsconfig.json              # TypeScript 設定
@@ -262,11 +309,18 @@ pnpm run docker:prod
 2. ポート 5432 が使用されていないことを確認
 3. 環境変数が正しく設定されていることを確認
 
+### GitHub ログインに失敗する場合
+
+1. `.env.local` の `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` を確認
+2. `AUTH_SECRET` が設定されていることを確認
+3. OAuth App の Callback URL が `http://localhost:3000/api/auth/callback/github` と一致していることを確認
+
 ### データをリセットしたい場合
 
 ```bash
 # コンテナとボリュームを削除
-pnpm run docker:down
+pnpm run dev:down
+pnpm run prod:down
 docker-compose down -v
 
 # 再度起動
