@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { signIn, signOut } from "next-auth/react";
 import AddTask from "@/components/AddTask";
 import TaskList from "@/components/TaskList";
 import ChangeTheme from "@/components/ChangeTheme";
@@ -9,13 +10,19 @@ import { Todo, ApiResponse } from "@/types/type";
 
 interface HomeClientProps {
   initialTodos: Todo[];
+  isAuthenticated: boolean;
+  userName: string | null;
 }
 
 /**
  * メモアプリのクライアントコンポーネント
  * サーバーから受け取った初期データを管理し、ユーザーインタラクションを処理
  */
-export default function HomeClient({ initialTodos }: HomeClientProps) {
+export default function HomeClient({
+  initialTodos,
+  isAuthenticated,
+  userName,
+}: HomeClientProps) {
   const [todos, setTodos] = useState<Todo[]>(initialTodos);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -147,7 +154,46 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
         theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"
       }`}
     >
-      <h1 className="text-2xl font-bold mb-4">メモアプリ (PostgreSQL版)</h1>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">メモアプリ (PostgreSQL版)</h1>
+
+        <div className="flex items-center gap-2">
+          {isAuthenticated && userName && (
+            <span
+              className={`text-sm ${
+                theme === "dark" ? "text-gray-300" : "text-gray-600"
+              }`}
+            >
+              {userName}
+            </span>
+          )}
+
+          {isAuthenticated ?
+            <button
+              onClick={() => signOut()}
+              className={`rounded px-3 py-2 text-sm font-medium transition ${
+                theme === "dark" ?
+                  "bg-gray-700 hover:bg-gray-600"
+                : "bg-gray-200 hover:bg-gray-300"
+              }`}
+            >
+              ログアウト
+            </button>
+          : <button
+              onClick={() => signIn("github")}
+              className={`rounded px-3 py-2 text-sm font-medium transition ${
+                theme === "dark" ?
+                  "bg-indigo-600 hover:bg-indigo-500 text-white"
+                : "bg-indigo-500 hover:bg-indigo-600 text-white"
+              }`}
+            >
+              GitHubでログイン
+            </button>
+          }
+
+          <ChangeTheme toggleTheme={toggleTheme} />
+        </div>
+      </div>
 
       {/* エラー表示 */}
       {error && (
@@ -179,7 +225,6 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
         deleteTodo={deleteTodo}
         updateTodo={updateTodo}
       />
-      <ChangeTheme toggleTheme={toggleTheme} />
 
       {/* データベース接続状態の表示 */}
       <div className="mt-8 text-sm">
