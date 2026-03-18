@@ -17,7 +17,7 @@ test.describe("Todo Edit Operations", () => {
     const item = await createTodo(page, todoText);
 
     const updatedText = `${todoText} - edited`;
-    const updatedItem = await editTodo(page, item, updatedText);
+    const updatedItem = await editTodo(item, updatedText);
 
     // 更新されたテキストが表示されることを確認
     await expect(updatedItem).toContainText("- edited");
@@ -31,17 +31,17 @@ test.describe("Todo Edit Operations", () => {
 
     // 1回目の編集
     const firstEdit = `${todoText} - edit 1`;
-    item = await editTodo(page, item, firstEdit);
+    item = await editTodo(item, firstEdit);
     await expect(item).toContainText("- edit 1");
 
     // 2回目の編集
     const secondEdit = `${todoText} - edit 2`;
-    item = await editTodo(page, item, secondEdit);
+    item = await editTodo(item, secondEdit);
     await expect(item).toContainText("- edit 2");
 
     // 3回目の編集
     const thirdEdit = `${todoText} - final`;
-    item = await editTodo(page, item, thirdEdit);
+    item = await editTodo(item, thirdEdit);
     await expect(item).toContainText("- final");
 
     await deleteTodo(item);

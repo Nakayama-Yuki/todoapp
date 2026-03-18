@@ -48,28 +48,23 @@ export async function toggleTodo(item: Locator): Promise<Locator> {
 
 /**
  * Todoのテキストを編集する
- * @param page - Playwrightのページオブジェクト
  * @param item - 編集するTodoのLocator
  * @param newText - 新しいテキスト
  * @returns 更新されたTodoのLocator
  */
 export async function editTodo(
-  page: Page,
   item: Locator,
   newText: string,
 ): Promise<Locator> {
   await item.getByRole("button", { name: "編集" }).click();
 
-  // 編集モードになったら、チェックボックスの次の input (テキストフィールド)を取得
-  const editInput = item.locator("input").nth(1);
+  const editInput = item.getByRole("textbox", { name: "Todoを編集" });
   await expect(editInput).toBeVisible();
   await editInput.fill(newText);
 
   await item.getByRole("button", { name: "保存する" }).click();
-
-  const updatedItem = page.locator("li", { hasText: newText });
-  await expect(updatedItem).toBeVisible();
-  return updatedItem;
+  await expect(item).toContainText(newText);
+  return item;
 }
 
 /**

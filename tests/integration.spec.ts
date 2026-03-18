@@ -46,7 +46,7 @@ test.describe("Integration Tests", () => {
 
     // ステップ2: Todoを編集
     const editedText = `${todoText} - edited`;
-    item = await editTodo(page, item, editedText);
+    item = await editTodo(item, editedText);
     await expect(item).toContainText("- edited");
 
     // ステップ3: Todoを完了状態にする
@@ -63,7 +63,7 @@ test.describe("Integration Tests", () => {
 
     // ステップ4: 完了状態のまま再度編集
     const finalText = `${todoText} - final edit`;
-    item = await editTodo(page, item, finalText);
+    item = await editTodo(item, finalText);
     await expect(item).toContainText("- final edit");
     const todoLabelAfterEdit = item.locator("label");
     await expect(todoLabelAfterEdit).toBeVisible();

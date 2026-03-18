@@ -42,7 +42,7 @@ test.describe("Theme Toggle", () => {
 
     // 編集モードに入る
     await item.getByRole("button", { name: "編集" }).click();
-    const editInput = item.locator("input").nth(1);
+    const editInput = item.getByRole("textbox", { name: "Todoを編集" });
     await expect(editInput).toBeVisible();
 
     // ライトテーマでの編集入力のスタイルを確認

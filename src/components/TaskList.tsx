@@ -47,7 +47,11 @@ export default function TaskList({
   return (
     <ul>
       {todos.map((todo) => (
-        <li key={todo.id} className="mb-2 flex items-center gap-2 max-w-100">
+        <li
+          key={todo.id}
+          data-testid={`todo-item-${todo.id}`}
+          className="mb-2 flex items-center gap-2 max-w-100"
+        >
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <input
               type="checkbox"
@@ -58,12 +62,10 @@ export default function TaskList({
             />
             {editId === todo.id ?
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                {/* 編集中でもテキストを DOM 上に保持してロケーターが途切れないようにする */}
-                <span className="sr-only" aria-hidden>
-                  {todo.text}
-                </span>
                 <input
                   type="text"
+                  aria-label="Todoを編集"
+                  data-testid={`todo-edit-input-${todo.id}`}
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
                   disabled={isSaving}
