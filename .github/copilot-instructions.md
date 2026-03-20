@@ -1,6 +1,9 @@
 <!-- .github直下にあるcopilot-instructions.mdはすべてのチャットに自動的に適用される -->
 <!-- 全体の指針になるinstructionsファイル -->
 
+> Next.js のフレームワーク固有ルールは、まずルートの `AGENTS.md` と `node_modules/next/dist/docs/` を参照してください。
+> このファイルは、その上に重ねるこのリポジトリ固有のガイドです。
+
 # GitHub Copilot 用の Todo App ガイド
 
 このドキュメントは、Next.js 16 + PostgreSQL Todo アプリケーションの アーキテクチャと規約を AI コーディング エージェントに案内します。
