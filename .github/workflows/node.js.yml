@@ -70,6 +70,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # ステップ4.5: ESLintを実行
+      - name: Run lint
+        run: pnpm lint --max-warnings=0
+
       # ステップ5: データベーススキーマを初期化
       # ヘルスチェックにより PostgreSQL は既に起動しているが、
       # 確実に接続できることを確認してからスキーマを初期化する
