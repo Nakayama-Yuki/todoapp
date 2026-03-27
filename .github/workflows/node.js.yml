@@ -70,11 +70,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # ステップ4.5: ESLintを実行
+      # ステップ5: ESLintを実行
       - name: Run lint
         run: pnpm lint --max-warnings=0
 
-      # ステップ5: データベーススキーマを初期化
+      # ステップ6: データベーススキーマを初期化
       # ヘルスチェックにより PostgreSQL は既に起動しているが、
       # 確実に接続できることを確認してからスキーマを初期化する
       - name: Initialize database
@@ -85,7 +85,7 @@ jobs:
         env:
           PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
 
-      # ステップ6: Next.jsビルドキャッシュを復元
+      # ステップ7: Next.jsビルドキャッシュを復元
       - name: Cache Next.js build
         uses: actions/cache@v5
         with:
@@ -99,21 +99,21 @@ jobs:
             ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-
             ${{ runner.os }}-nextjs-
 
-      # ステップ7: Playwrightブラウザをインストール
+      # ステップ8: Playwrightブラウザをインストール
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
 
-      # ステップ7: プロジェクトをビルド
+      # ステップ9: プロジェクトをビルド
       # DATABASE_URL はジョブレベルのenv変数として既に設定されているため、個別指定は不要
 
       - name: Build project
         run: pnpm run build
 
-      # ステップ8: テストを実行
+      # ステップ10: テストを実行
       - name: Run tests
         run: pnpm exec playwright test
 
-      #ステップ９: Playwrightのテストレポートをアップロード
+      #ステップ11: Playwrightのテストレポートをアップロード
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
