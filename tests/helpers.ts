@@ -21,9 +21,13 @@ export async function createTodo(page: Page, text: string): Promise<Locator> {
   const input = page.getByRole("textbox").first();
   await input.fill(text);
   await page.getByRole("button", { name: "追加する" }).click();
-  const item = page.locator("li", { hasText: text });
+  const item = page.locator("li", { hasText: text }).first();
   await expect(item).toBeVisible();
-  return item;
+
+  const testId = await item.getAttribute("data-testid");
+  expect(testId).toBeTruthy();
+
+  return page.getByTestId(testId!);
 }
 
 /**

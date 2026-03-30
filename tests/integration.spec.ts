@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Locator } from "@playwright/test";
 import {
   setupPage,
   createTodo,
@@ -14,24 +14,21 @@ test.describe("Integration Tests", () => {
   });
 
   test("creates and deletes multiple todos in sequence", async ({ page }) => {
-    const todos: string[] = [];
+    const items: Locator[] = [];
 
     // 複数のTodoを連続して作成
     for (let i = 1; i <= 5; i++) {
       const todoText = generateTodoText(`Batch Todo ${i}`);
-      todos.push(todoText);
-      await createTodo(page, todoText);
+      items.push(await createTodo(page, todoText));
     }
 
     // すべてのTodoが作成されていることを確認
-    for (const todoText of todos) {
-      const item = page.locator("li", { hasText: todoText });
+    for (const item of items) {
       await expect(item).toBeVisible();
     }
 
     // すべてのTodoを削除
-    for (const todoText of todos) {
-      const item = page.locator("li", { hasText: todoText });
+    for (const item of items) {
       await deleteTodo(item);
     }
   });
