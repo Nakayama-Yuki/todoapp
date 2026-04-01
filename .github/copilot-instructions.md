@@ -81,12 +81,6 @@ pnpm dev
 # テストを実行
 pnpm test
 
-# テストを UI モードで実行
-pnpm test:ui
-
-# テストをヘッドレスモードで実行
-pnpm test:headless
-
 # コード品質チェック
 pnpm lint
 ```
@@ -154,8 +148,6 @@ pnpm lint
 
 ```bash
 pnpm test              # テストを実行
-pnpm test:ui           # UI モードでテストを実行（対話的）
-pnpm test:headless     # ヘッドレスモードでテストを実行（CI/CD）
 ```
 
 ### テスト環境の特性
@@ -243,7 +235,7 @@ GitHub Actions には以下のシークレットが必要:
 
 1. 類似パターンが既に存在するか確認 (例: `route.ts` の API エンドポイント)
 2. コンポーネント構成を確認 (サーバー/クライアント分割)
-3. テスト実行: `pnpm test:headless`
+3. テスト実行: `pnpm test`
 
 **データベース変更**:
 
@@ -274,7 +266,7 @@ GitHub Actions には以下のシークレットが必要:
 
 - **トリガー**: main ブランチへの push / PR / merge_group
 - **Service Containers**: PostgreSQL 17-alpine を起動（テスト実行中）
-- **テスト**: `pnpm test:headless` で E2E テスト実行
+- **テスト**: `pnpm test` で E2E テスト実行
 - **リント**: `pnpm lint` でコード品質チェック
 - **ビルド**: `pnpm build` で Next.js ビルド検証
 - **Secrets**: Settings → Secrets and variables → Actions で `POSTGRES_DB`、`POSTGRES_USER`、`POSTGRES_PASSWORD`、`AUTH_SECRET`、`AUTH_GITHUB_ID`、`AUTH_GITHUB_SECRET` を設定
