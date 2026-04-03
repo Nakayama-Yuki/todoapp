@@ -78,9 +78,12 @@ cp .env.local.example .env.local
 
 ```bash
 AUTH_SECRET="生成したランダム文字列"
+AUTH_TRUST_HOST="true" # 特殊ホストやCIで必要な場合のみ
 AUTH_GITHUB_ID="GitHub OAuth Client ID"
 AUTH_GITHUB_SECRET="GitHub OAuth Client Secret"
 ```
+
+`AUTH_GITHUB_ID` と `AUTH_GITHUB_SECRET` が未設定のときは、アプリは GitHub ログインを無効化した状態で起動します。E2E や CI で認証フローを使わない場合は、この状態でも動作します。
 
 デフォルトの`.env`はすべての環境で共通です。
 

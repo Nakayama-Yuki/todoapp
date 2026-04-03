@@ -3,7 +3,7 @@ import { Todo } from "@/types/type";
 import HomeClient from "@/components/HomeClient";
 import LoadingFallback from "@/components/LoadingFallback";
 import { getDbPool } from "@/lib/db";
-import { auth } from "@/auth";
+import { auth, isAuthEnabled } from "@/auth";
 
 // Cache Components ではデフォルトで動的レンダリングになる
 // データ取得は Suspense 境界内のコンポーネントで行い、ブロッキングを防ぐ
@@ -31,12 +31,13 @@ async function fetchTodos(): Promise<Todo[]> {
 // Todo リストを取得して HomeClient に渡すコンポーネント
 async function TodosLoader() {
   const initialTodos = await fetchTodos();
-  const session = await auth();
+  const session = isAuthEnabled ? await auth() : null;
   const userName = session?.user?.name ?? session?.user?.email ?? null;
 
   return (
     <HomeClient
       initialTodos={initialTodos}
+      isAuthEnabled={isAuthEnabled}
       isAuthenticated={!!session?.user}
       userName={userName}
     />

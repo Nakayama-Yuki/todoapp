@@ -10,6 +10,7 @@ import { Todo, ApiResponse } from "@/types/type";
 
 interface HomeClientProps {
   initialTodos: Todo[];
+  isAuthEnabled: boolean;
   isAuthenticated: boolean;
   userName: string | null;
 }
@@ -20,6 +21,7 @@ interface HomeClientProps {
  */
 export default function HomeClient({
   initialTodos,
+  isAuthEnabled,
   isAuthenticated,
   userName,
 }: HomeClientProps) {
@@ -158,7 +160,7 @@ export default function HomeClient({
         <h1 className="text-2xl font-bold">メモアプリ (PostgreSQL版)</h1>
 
         <div className="flex items-center gap-2">
-          {isAuthenticated && userName && (
+          {isAuthEnabled && isAuthenticated && userName && (
             <span
               className={`text-sm ${
                 theme === "dark" ? "text-gray-300" : "text-gray-600"
@@ -168,28 +170,28 @@ export default function HomeClient({
             </span>
           )}
 
-          {isAuthenticated ?
-            <button
-              onClick={() => signOut()}
-              className={`rounded px-3 py-2 text-sm font-medium transition ${
-                theme === "dark" ?
-                  "bg-gray-700 hover:bg-gray-600"
-                : "bg-gray-200 hover:bg-gray-300"
-              }`}
-            >
-              ログアウト
-            </button>
-          : <button
-              onClick={() => signIn("github")}
-              className={`rounded px-3 py-2 text-sm font-medium transition ${
-                theme === "dark" ?
-                  "bg-indigo-600 hover:bg-indigo-500 text-white"
-                : "bg-indigo-500 hover:bg-indigo-600 text-white"
-              }`}
-            >
-              GitHubでログイン
-            </button>
-          }
+          {isAuthEnabled &&
+            (isAuthenticated ?
+              <button
+                onClick={() => signOut()}
+                className={`rounded px-3 py-2 text-sm font-medium transition ${
+                  theme === "dark" ?
+                    "bg-gray-700 hover:bg-gray-600"
+                  : "bg-gray-200 hover:bg-gray-300"
+                }`}
+              >
+                ログアウト
+              </button>
+            : <button
+                onClick={() => signIn("github")}
+                className={`rounded px-3 py-2 text-sm font-medium transition ${
+                  theme === "dark" ?
+                    "bg-indigo-600 hover:bg-indigo-500 text-white"
+                  : "bg-indigo-500 hover:bg-indigo-600 text-white"
+                }`}
+              >
+                GitHubでログイン
+              </button>)}
 
           <ChangeTheme toggleTheme={toggleTheme} />
         </div>

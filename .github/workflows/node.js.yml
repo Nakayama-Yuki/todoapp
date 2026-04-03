@@ -24,6 +24,8 @@ jobs:
       POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}
+      AUTH_SECRET: github-actions-test-secret
+      AUTH_TRUST_HOST: "true"
 
     # Service Containers: PostgreSQL データベースサービス
     # 詳細: https://docs.github.com/ja/actions/using-containerized-services/about-service-containers
