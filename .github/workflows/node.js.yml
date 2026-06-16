@@ -41,7 +41,7 @@ jobs:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         # PostgreSQL が起動するまで待機するヘルスチェックを設定
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U ${{ secrets.POSTGRES_USER }} -d ${{ secrets.POSTGRES_DB }}"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -70,7 +70,7 @@ jobs:
 
       # ステップ4: プロジェクトの依存関係をインストール
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       # ステップ5: ESLintを実行
       - name: Run lint
@@ -91,9 +91,7 @@ jobs:
       - name: Cache Next.js build
         uses: actions/cache@v5
         with:
-          path: |
-            ~/.pnpm-store
-            ${{ github.workspace }}/.next/cache
+          path: ${{ github.workspace }}/.next/cache
           # パッケージまたはソースファイルが変更された場合に新しいキャッシュを生成
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
           #ソースファイルが変更されたがパッケージが変更されなかった場合、以前のキャッシュから再構築
@@ -103,7 +101,7 @@ jobs:
 
       # ステップ8: Playwrightブラウザをインストール
       - name: Install Playwright Browsers
-        run: pnpm exec playwright install --with-deps
+        run: pnpm exec playwright install chromium --with-deps
 
       # ステップ9: プロジェクトをビルド
       # DATABASE_URL はジョブレベルのenv変数として既に設定されているため、個別指定は不要
@@ -115,9 +113,9 @@ jobs:
       - name: Run tests
         run: pnpm exec playwright test
 
-      #ステップ11: Playwrightのテストレポートをアップロード
+      # ステップ11: Playwrightのテストレポートをアップロード
       - uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
+        if: ${{ failure() && !cancelled() }}
         with:
           name: playwright-report
           path: playwright-report/
