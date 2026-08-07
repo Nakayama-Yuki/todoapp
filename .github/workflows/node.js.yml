@@ -46,18 +46,18 @@ jobs:
     # 実行するステップの定義
     steps:
       # ステップ1: リポジトリのコードをチェックアウト（取得）
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # ステップ2: pnpmパッケージマネージャーをインストール
       - name: Install pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
         with:
           version: 10 # pnpm v10を使用
           run_install: false # 自動的に依存関係をインストールしない
 
       # ステップ3: LTSのNode.jsをセットアップ
       - name: Use Node.js LTS
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: lts/*
           cache: "pnpm" # pnpmのキャッシュを有効化
@@ -83,7 +83,7 @@ jobs:
 
       # ステップ7: Next.jsビルドキャッシュを復元
       - name: Cache Next.js build
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/.next/cache
           # パッケージまたはソースファイルが変更された場合に新しいキャッシュを生成
