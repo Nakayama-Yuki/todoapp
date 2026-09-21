@@ -20,7 +20,7 @@
     "postgres:logs": "docker-compose -f docker-compose.dev.yml logs postgres"
   },
   "dependencies": {
-    "next": "^16.3.4",
+    "next": "^16.3.5",
     "next-auth": "5.0.0-beta.32",
     "pg": "^8.23.0",
     "react": "^19.3.0",
@@ -29,12 +29,12 @@
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
-    "@types/node": "^24.13.4",
+    "@types/node": "^24.13.5",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.3.4",
+    "eslint-config-next": "^16.3.5",
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3"
