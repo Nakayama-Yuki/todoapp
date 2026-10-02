@@ -50,7 +50,7 @@ jobs:
 
       # ステップ2: pnpm、Node.js LTS、依存関係をセットアップ
       - name: Setup pnpm and Node.js
-        uses: pnpm/setup@c9883cc79df532ad1a7b81bf9ab944ceb090d65c
+        uses: pnpm/setup@v3
         with:
           version: 12 # Use the latest pnpm v12 release
           runtime: node@lts
