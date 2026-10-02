@@ -48,29 +48,19 @@ jobs:
       # ステップ1: リポジトリのコードをチェックアウト（取得）
       - uses: actions/checkout@v7
 
-      # ステップ2: pnpmパッケージマネージャーをインストール
-      - name: Install pnpm
-        uses: pnpm/action-setup@v6
+      # ステップ2: pnpm、Node.js LTS、依存関係をセットアップ
+      - name: Setup pnpm and Node.js
+        uses: pnpm/setup@c9883cc79df532ad1a7b81bf9ab944ceb090d65c
         with:
-          version: 10 # pnpm v10を使用
-          run_install: false # 自動的に依存関係をインストールしない
+          version: latest # 最新の pnpm を使用
+          runtime: node@lts
+          cache: true # pnpm ストアのキャッシュを有効化
 
-      # ステップ3: LTSのNode.jsをセットアップ
-      - name: Use Node.js LTS
-        uses: actions/setup-node@v7
-        with:
-          node-version: lts/*
-          cache: "pnpm" # pnpmのキャッシュを有効化
-
-      # ステップ4: プロジェクトの依存関係をインストール
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      # ステップ5: ESLintを実行
+      # ステップ3: ESLintを実行
       - name: Run lint
         run: pnpm lint --max-warnings=0
 
-      # ステップ6: データベーススキーマを初期化
+      # ステップ4: データベーススキーマを初期化
       # ヘルスチェックにより PostgreSQL は既に起動しているが、
       # 確実に接続できることを確認してからスキーマを初期化する
       - name: Initialize database
@@ -81,7 +71,7 @@ jobs:
         env:
           PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
 
-      # ステップ7: Next.jsビルドキャッシュを復元
+      # ステップ5: Next.jsビルドキャッシュを復元
       - name: Cache Next.js build
         uses: actions/cache@v6
         with:
@@ -93,21 +83,21 @@ jobs:
             ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-
             ${{ runner.os }}-nextjs-
 
-      # ステップ8: Playwrightブラウザをインストール
+      # ステップ6: Playwrightブラウザをインストール
       - name: Install Playwright Browsers
         run: pnpm exec playwright install chromium --with-deps
 
-      # ステップ9: プロジェクトをビルド
+      # ステップ7: プロジェクトをビルド
       # DATABASE_URL はジョブレベルのenv変数として既に設定されているため、個別指定は不要
 
       - name: Build project
         run: pnpm run build
 
-      # ステップ10: テストを実行
+      # ステップ8: テストを実行
       - name: Run tests
         run: pnpm exec playwright test
 
-      # ステップ11: Playwrightのテストレポートをアップロード
+      # ステップ9: Playwrightのテストレポートをアップロード
       - uses: actions/upload-artifact@v7
         if: ${{ failure() && !cancelled() }}
         with:
