@@ -15,7 +15,7 @@
 - **フロントエンド**: Next.js 16 (App Router)、React 19、TypeScript 5、Tailwind CSS v4
 - **バックエンド**: Next.js API Routes (`/app/api/todos/`)
 - **認証**: Auth.js (next-auth v5 beta) + GitHub OAuth (`/app/api/auth/[...nextauth]/`)
-- **データベース**: PostgreSQL 17 (Docker)
+- **データベース**: PostgreSQL 18 (Docker)
 - **テスト**: Playwright
 - **パッケージマネージャー**: pnpm
 
@@ -265,7 +265,7 @@ GitHub Actions には以下のシークレットが必要:
 ### CI/CD ワークフロー (`.github/workflows/node.js.yml`)
 
 - **トリガー**: main ブランチへの push / PR / merge_group
-- **Service Containers**: PostgreSQL 17-alpine を起動（テスト実行中）
+- **Service Containers**: PostgreSQL 18-alpine を起動（テスト実行中）
 - **テスト**: `pnpm test` で E2E テスト実行
 - **リント**: `pnpm lint` でコード品質チェック
 - **ビルド**: `pnpm build` で Next.js ビルド検証

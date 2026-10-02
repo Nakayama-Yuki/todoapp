@@ -8,7 +8,7 @@ Auth.js (next-auth v5 beta) + GitHub OAuth による認証機能を含みます�
 
 - **Frontend**: Next.js 16, React 19, TypeScript 5, Tailwind CSS v4
 - **Backend**: Next.js API Routes
-- **Database**: PostgreSQL 17 (Docker)
+- **Database**: PostgreSQL 18 (Docker)
 - **Authentication**: Auth.js (next-auth v5 beta), GitHub OAuth
 - **Testing**: Playwright
 - **Package Manager**: pnpm
@@ -112,6 +112,8 @@ pnpm run docker:prod
 pnpm run docker:logs       # 開発（DBのみ）
 pnpm run prod:logs         # 本番（アプリ+DB）
 ```
+
+PostgreSQL 17 以前のデータを引き継ぐ必要がなければ、通常の起動コマンドで PostgreSQL 18 を新規利用できます。コンテナを削除しても名前付きボリュームのデータは残るため、不要なデータを完全に削除する場合は Docker のボリュームも別途削除してください。17 のデータを残しておきたい場合は、新旧のメジャーバージョンで同じデータボリュームを共有しないでください。
 
 ### 4. アプリケーションへのアクセス
 
