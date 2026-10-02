@@ -1,12 +1,10 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { Todo } from "@/types/type";
 import HomeClient from "@/components/HomeClient";
 import LoadingFallback from "@/components/LoadingFallback";
 import { getDbPool } from "@/lib/db";
 import { auth, isAuthEnabled } from "@/auth";
-
-// Cache Components ではデフォルトで動的レンダリングになる
-// データ取得は Suspense 境界内のコンポーネントで行い、ブロッキングを防ぐ
 
 // DB から Todo リストを取得する関数
 async function fetchTodos(): Promise<Todo[]> {
@@ -30,8 +28,11 @@ async function fetchTodos(): Promise<Todo[]> {
 
 // Todo リストを取得して HomeClient に渡すコンポーネント
 async function TodosLoader() {
-  const initialTodos = await fetchTodos();
-  const session = isAuthEnabled ? await auth() : null;
+  await connection();
+  const [initialTodos, session] = await Promise.all([
+    fetchTodos(),
+    isAuthEnabled ? auth() : Promise.resolve(null),
+  ]);
   const userName = session?.user?.name ?? session?.user?.email ?? null;
 
   return (

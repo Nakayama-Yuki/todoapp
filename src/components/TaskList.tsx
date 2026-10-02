@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { TaskListProps } from "@/types/type";
 import { useTheme } from "@/context/themeContext"; // 追加
 
@@ -14,8 +14,8 @@ export default function TaskList({
 }: TaskListProps) {
   const [editId, setEditId] = useState<number | null>(null);
   const [editText, setEditText] = useState<string>("");
-  const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
   const { theme } = useTheme(); // 追加
 
   // 編集ボタンがクリックされたときの関数
@@ -26,22 +26,21 @@ export default function TaskList({
   }
 
   // セーブボタンがクリックされたときの関数
-  async function handleSave(id: number) {
-    setIsSaving(true);
+  function handleSave(id: number) {
     setError(null);
 
-    const success = await updateTodo(id, editText);
+    startTransition(async () => {
+      const success = await updateTodo(id, editText);
 
-    setIsSaving(false);
-
-    if (success) {
-      // 成功時のみ編集モードを終了
-      setEditId(null);
-      setEditText("");
-    } else {
-      // 失敗時はエラー表示して編集モードを継続
-      setError("保存に失敗しました。もう一度お試しください。");
-    }
+      if (success) {
+        // 成功時のみ編集モードを終了
+        setEditId(null);
+        setEditText("");
+      } else {
+        // 失敗時はエラー表示して編集モードを継続
+        setError("保存に失敗しました。もう一度お試しください。");
+      }
+    });
   }
 
   return (
@@ -58,7 +57,7 @@ export default function TaskList({
               className="shrink-0"
               onChange={() => toggleTodo(todo.id)}
               checked={todo.completed}
-              disabled={editId === todo.id && isSaving}
+              disabled={editId === todo.id && isPending}
             />
             {editId === todo.id ?
               <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -68,7 +67,7 @@ export default function TaskList({
                   data-testid={`todo-edit-input-${todo.id}`}
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
-                  disabled={isSaving}
+                  disabled={isPending}
                   // テーマに応じたスタイルを適用
                   className={`border rounded p-1 flex-1 min-w-0 ${
                     theme === "dark" ?
@@ -95,12 +94,12 @@ export default function TaskList({
             {editId === todo.id ?
               <button
                 onClick={() => handleSave(todo.id)}
-                disabled={isSaving}
+                disabled={isPending}
                 className={`bg-green-600 text-white p-1 rounded-sm ${
-                  isSaving ? "opacity-50 cursor-not-allowed" : ""
+                  isPending ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
-                {isSaving ? "保存中..." : "保存する"}
+                {isPending ? "保存中..." : "保存する"}
               </button>
             : <button
                 onClick={() => handleEdit(todo.id, todo.text)}
@@ -111,9 +110,9 @@ export default function TaskList({
             }
             <button
               onClick={() => deleteTodo(todo.id)}
-              disabled={editId === todo.id && isSaving}
+              disabled={editId === todo.id && isPending}
               className={`bg-red-600 text-white p-1 rounded-sm ${
-                editId === todo.id && isSaving ?
+                editId === todo.id && isPending ?
                   "opacity-50 cursor-not-allowed"
                 : ""
               }`}
