@@ -33,7 +33,7 @@ jobs:
       # サービスコンテナにアクセスするために使用するラベル
       postgres:
         # Docker Hub イメージ
-        image: postgres:17-alpine
+        image: postgres:18-alpine
         # PostgreSQL の環境変数を GitHub Secrets から設定
         env:
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
