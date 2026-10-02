@@ -16,7 +16,7 @@ export interface TaskListProps {
 export interface AddTaskProps {
   input: string;
   setInput: (input: string) => void;
-  addTodo: () => void;
+  addTodo: () => Promise<void>;
 }
 
 export interface ChangeThemeProps {
