@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useOptimistic, useRef, useState, useTransition } from "react";
 import { signIn, signOut } from "next-auth/react";
 import AddTask from "@/components/AddTask";
 import TaskList from "@/components/TaskList";
@@ -15,6 +15,36 @@ interface HomeClientProps {
   userName: string | null;
 }
 
+type OptimisticTodoAction =
+  | { type: "add"; todo: Todo }
+  | { type: "confirmAdd"; temporaryId: number; todo: Todo }
+  | { type: "replace"; todo: Todo }
+  | { type: "remove"; id: number };
+
+function reduceTodos(
+  todos: Todo[],
+  action: OptimisticTodoAction,
+): Todo[] {
+  switch (action.type) {
+    case "add":
+      return [action.todo, ...todos];
+    case "confirmAdd":
+      return [
+        action.todo,
+        ...todos.filter(
+          (todo) =>
+            todo.id !== action.temporaryId && todo.id !== action.todo.id,
+        ),
+      ];
+    case "replace":
+      return todos.map((todo) =>
+        todo.id === action.todo.id ? action.todo : todo,
+      );
+    case "remove":
+      return todos.filter((todo) => todo.id !== action.id);
+  }
+}
+
 /**
  * メモアプリのクライアントコンポーネント
  * サーバーから受け取った初期データを管理し、ユーザーインタラクションを処理
@@ -26,6 +56,12 @@ export default function HomeClient({
   userName,
 }: HomeClientProps) {
   const [todos, setTodos] = useState<Todo[]>(initialTodos);
+  const [optimisticTodos, setOptimisticTodos] = useOptimistic(
+    todos,
+    reduceTodos,
+  );
+  const [, startTransition] = useTransition();
+  const nextTemporaryId = useRef(-1);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const { theme, toggleTheme } = useTheme();
@@ -35,6 +71,12 @@ export default function HomeClient({
    */
   async function addTodo(): Promise<void> {
     if (input.trim() === "") return;
+
+    const temporaryId = nextTemporaryId.current--;
+    setOptimisticTodos({
+      type: "add",
+      todo: { id: temporaryId, text: input.trim(), completed: false },
+    });
 
     try {
       const response = await fetch("/api/todos", {
@@ -48,8 +90,14 @@ export default function HomeClient({
       const result: ApiResponse<Todo> = await response.json();
 
       if (result.success && result.data) {
-        // 新しいTodoをリストの先頭に追加
-        setTodos((prevTodos) => [result.data!, ...prevTodos]);
+        startTransition(() => {
+          setTodos((prevTodos) => [result.data!, ...prevTodos]);
+          setOptimisticTodos({
+            type: "confirmAdd",
+            temporaryId,
+            todo: result.data!,
+          });
+        });
         setInput("");
       } else {
         setError(result.error || "Failed to add todo");
@@ -63,56 +111,69 @@ export default function HomeClient({
   /**
    * Todoの完了状態を切り替える関数
    */
-  async function toggleTodo(id: number): Promise<void> {
-    const todo = todos.find((t) => t.id === id);
+  function toggleTodo(id: number): void {
+    const todo = optimisticTodos.find((t) => t.id === id);
     if (!todo) return;
 
-    try {
-      const response = await fetch(`/api/todos/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ completed: !todo.completed }),
+    startTransition(async () => {
+      setOptimisticTodos({
+        type: "replace",
+        todo: { ...todo, completed: !todo.completed },
       });
 
-      const result: ApiResponse<Todo> = await response.json();
+      try {
+        const response = await fetch(`/api/todos/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ completed: !todo.completed }),
+        });
 
-      if (result.success && result.data) {
-        // ローカル状態を更新
-        setTodos((prevTodos) =>
-          prevTodos.map((t) => (t.id === id ? result.data! : t)),
-        );
-      } else {
-        setError(result.error || "Failed to toggle todo");
+        const result: ApiResponse<Todo> = await response.json();
+
+        if (result.success && result.data) {
+          startTransition(() => {
+            setTodos((prevTodos) =>
+              prevTodos.map((t) => (t.id === id ? result.data! : t)),
+            );
+          });
+        } else {
+          setError(result.error || "Failed to toggle todo");
+        }
+      } catch (error) {
+        console.error("Error toggling todo:", error);
+        setError("Todoの更新に失敗しました");
       }
-    } catch (error) {
-      console.error("Error toggling todo:", error);
-      setError("Todoの更新に失敗しました");
-    }
+    });
   }
 
   /**
    * Todoを削除する関数
    */
-  async function deleteTodo(id: number): Promise<void> {
-    try {
-      const response = await fetch(`/api/todos/${id}`, {
-        method: "DELETE",
-      });
+  function deleteTodo(id: number): void {
+    startTransition(async () => {
+      setOptimisticTodos({ type: "remove", id });
 
-      const result: ApiResponse<null> = await response.json();
+      try {
+        const response = await fetch(`/api/todos/${id}`, {
+          method: "DELETE",
+        });
 
-      if (result.success) {
-        // ローカル状態からも削除
-        setTodos((prevTodos) => prevTodos.filter((t) => t.id !== id));
-      } else {
-        setError(result.error || "Failed to delete todo");
+        const result: ApiResponse<null> = await response.json();
+
+        if (result.success) {
+          startTransition(() => {
+            setTodos((prevTodos) => prevTodos.filter((t) => t.id !== id));
+          });
+        } else {
+          setError(result.error || "Failed to delete todo");
+        }
+      } catch (error) {
+        console.error("Error deleting todo:", error);
+        setError("Todoの削除に失敗しました");
       }
-    } catch (error) {
-      console.error("Error deleting todo:", error);
-      setError("Todoの削除に失敗しました");
-    }
+    });
   }
 
   /**
@@ -121,6 +182,13 @@ export default function HomeClient({
    */
   async function updateTodo(id: number, newText: string): Promise<boolean> {
     if (newText.trim() === "") return false;
+
+    const todo = optimisticTodos.find((t) => t.id === id);
+    if (!todo) return false;
+    setOptimisticTodos({
+      type: "replace",
+      todo: { ...todo, text: newText.trim() },
+    });
 
     try {
       const response = await fetch(`/api/todos/${id}`, {
@@ -134,10 +202,11 @@ export default function HomeClient({
       const result: ApiResponse<Todo> = await response.json();
 
       if (result.success && result.data) {
-        // ローカル状態を更新
-        setTodos((prevTodos) =>
-          prevTodos.map((t) => (t.id === id ? result.data! : t)),
-        );
+        startTransition(() => {
+          setTodos((prevTodos) =>
+            prevTodos.map((t) => (t.id === id ? result.data! : t)),
+          );
+        });
         return true;
       } else {
         setError(result.error || "Failed to update todo");
@@ -222,7 +291,7 @@ export default function HomeClient({
 
       <AddTask input={input} setInput={setInput} addTodo={addTodo} />
       <TaskList
-        todos={todos}
+        todos={optimisticTodos}
         toggleTodo={toggleTodo}
         deleteTodo={deleteTodo}
         updateTodo={updateTodo}
@@ -231,7 +300,7 @@ export default function HomeClient({
       {/* データベース接続状態の表示 */}
       <div className="mt-8 text-sm">
         <p className={theme === "dark" ? "text-gray-300" : "text-gray-600"}>
-          💾 PostgreSQLデータベースに接続中 (合計: {todos.length}件)
+          💾 PostgreSQLデータベースに接続中 (合計: {optimisticTodos.length}件)
         </p>
       </div>
     </div>

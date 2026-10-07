@@ -28,18 +28,20 @@ export default function TaskList({
   // セーブボタンがクリックされたときの関数
   function handleSave(id: number) {
     setError(null);
+    setEditId(null);
+    const submittedText = editText;
 
     startTransition(async () => {
-      const success = await updateTodo(id, editText);
+      const success = await updateTodo(id, submittedText);
 
-      if (success) {
-        // 成功時のみ編集モードを終了
-        setEditId(null);
-        setEditText("");
-      } else {
-        // 失敗時はエラー表示して編集モードを継続
-        setError("保存に失敗しました。もう一度お試しください。");
-      }
+      startTransition(() => {
+        if (success) {
+          setEditText("");
+        } else {
+          setEditId(id);
+          setError("保存に失敗しました。もう一度お試しください。");
+        }
+      });
     });
   }
 
@@ -57,7 +59,7 @@ export default function TaskList({
               className="shrink-0"
               onChange={() => toggleTodo(todo.id)}
               checked={todo.completed}
-              disabled={editId === todo.id && isPending}
+              disabled={isPending || todo.id < 0}
             />
             {editId === todo.id ?
               <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -103,16 +105,17 @@ export default function TaskList({
               </button>
             : <button
                 onClick={() => handleEdit(todo.id, todo.text)}
-                className="bg-yellow-600 text-white p-1 rounded-sm"
+                disabled={isPending || todo.id < 0}
+                className="bg-yellow-600 text-white p-1 rounded-sm disabled:cursor-not-allowed disabled:opacity-50"
               >
                 編集
               </button>
             }
             <button
               onClick={() => deleteTodo(todo.id)}
-              disabled={editId === todo.id && isPending}
+              disabled={isPending || todo.id < 0}
               className={`bg-red-600 text-white p-1 rounded-sm ${
-                editId === todo.id && isPending ?
+                isPending || todo.id < 0 ?
                   "opacity-50 cursor-not-allowed"
                 : ""
               }`}
