@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
-import { Todo, ApiResponse, CreateTodoRequest } from "@/types/type";
+import { Todo, ApiResponse } from "@/types/type";
+import {
+  errorResponse,
+  readJsonObject,
+  validateTodoText,
+} from "@/lib/validation";
 
 /**
  * GET /api/todos - 全てのTodoを取得
@@ -37,23 +42,16 @@ export async function POST(
   request: NextRequest
 ): Promise<NextResponse<ApiResponse<Todo>>> {
   try {
-    const body: CreateTodoRequest = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return errorResponse("Invalid JSON body", 400);
 
-    // バリデーション
-    if (!body.text || body.text.trim() === "") {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Todo text is required",
-        },
-        { status: 400 }
-      );
-    }
+    const validated = validateTodoText(body.text);
+    if (!validated.ok) return errorResponse(validated.error, 400);
 
     const pool = getDbPool();
     const result = await pool.query(
       "INSERT INTO todos (text, completed) VALUES ($1, $2) RETURNING id, text, completed, created_at, updated_at",
-      [body.text.trim(), false]
+      [validated.value, false]
     );
 
     const newTodo: Todo = result.rows[0];
