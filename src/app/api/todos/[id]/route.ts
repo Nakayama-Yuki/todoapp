@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
-import { Todo, ApiResponse, UpdateTodoRequest } from "@/types/type";
+import { Todo, ApiResponse } from "@/types/type";
+import {
+  errorResponse,
+  parseTodoId,
+  readJsonObject,
+  validateTodoText,
+} from "@/lib/validation";
 
 /**
  * PUT /api/todos/[id] - Todoを更新
@@ -11,20 +17,33 @@ export async function PUT(
 ): Promise<NextResponse<ApiResponse<Todo>>> {
   const params = await props.params;
   try {
-    const todoId = parseInt(params.id);
+    const todoId = parseTodoId(params.id);
+    if (todoId === null) return errorResponse("Invalid todo ID", 400);
 
-    // IDのバリデーション
-    if (isNaN(todoId)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid todo ID",
-        },
-        { status: 400 },
-      );
+    const body = await readJsonObject(request);
+    if (!body) return errorResponse("Invalid JSON body", 400);
+
+    const { text, completed } = body;
+
+    if (text === undefined && completed === undefined) {
+      return errorResponse("Nothing to update", 400);
     }
 
-    const body: UpdateTodoRequest = await request.json();
+    let validatedText: string | undefined;
+    if (text !== undefined) {
+      const validated = validateTodoText(text);
+      if (!validated.ok) return errorResponse(validated.error, 400);
+      validatedText = validated.value;
+    }
+
+    let validatedCompleted: boolean | undefined;
+    if (completed !== undefined) {
+      if (typeof completed !== "boolean") {
+        return errorResponse("completed must be a boolean", 400);
+      }
+      validatedCompleted = completed;
+    }
+
     const pool = getDbPool();
 
     // 既存のTodoをチェック
@@ -48,15 +67,15 @@ export async function PUT(
     const updateValues: (string | number | boolean)[] = [];
     let paramIndex = 1;
 
-    if (body.text !== undefined) {
+    if (validatedText !== undefined) {
       updateFields.push(`text = $${paramIndex}`);
-      updateValues.push(body.text.trim());
+      updateValues.push(validatedText);
       paramIndex++;
     }
 
-    if (body.completed !== undefined) {
+    if (validatedCompleted !== undefined) {
       updateFields.push(`completed = $${paramIndex}`);
-      updateValues.push(body.completed);
+      updateValues.push(validatedCompleted);
       paramIndex++;
     }
 
@@ -99,18 +118,8 @@ export async function DELETE(
 ): Promise<NextResponse<ApiResponse<null>>> {
   const params = await props.params;
   try {
-    const todoId = parseInt(params.id);
-
-    // IDのバリデーション
-    if (isNaN(todoId)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid todo ID",
-        },
-        { status: 400 },
-      );
-    }
+    const todoId = parseTodoId(params.id);
+    if (todoId === null) return errorResponse("Invalid todo ID", 400);
 
     const pool = getDbPool();
 
