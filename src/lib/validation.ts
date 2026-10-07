@@ -47,7 +47,7 @@ export function validateTodoText(
   if (text === "") {
     return { ok: false, error: "Todo text is required" };
   }
-  if (text.length > MAX_TODO_TEXT_LENGTH) {
+  if ([...text].length > MAX_TODO_TEXT_LENGTH) {
     return {
       ok: false,
       error: `Todo text must be ${MAX_TODO_TEXT_LENGTH} characters or less`,

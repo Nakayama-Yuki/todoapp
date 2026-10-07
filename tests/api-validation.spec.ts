@@ -19,6 +19,22 @@ test.describe("API 入力バリデーション", () => {
     }
   });
 
+  test("POST: 絵文字は Unicode コードポイント数で 255 文字まで許可", async ({
+    request,
+  }) => {
+    const ok = await request.post("/api/todos", {
+      data: { text: "\u{1F600}".repeat(255) },
+    });
+    expect(ok.status()).toBe(200);
+    const { id } = (await ok.json()).data;
+    await request.delete(`/api/todos/${id}`);
+
+    const tooLong = await request.post("/api/todos", {
+      data: { text: "\u{1F600}".repeat(256) },
+    });
+    expect(tooLong.status()).toBe(400);
+  });
+
   test("PUT: 不正な ID は 400", async ({ request }) => {
     for (const id of ["1abc", "0", "-1", "1.5", "99999999999"]) {
       const res = await request.put(`/api/todos/${id}`, {
