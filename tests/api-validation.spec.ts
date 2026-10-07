@@ -12,7 +12,7 @@ test.describe("API 入力バリデーション", () => {
   test("POST: text が文字列以外 / 空 / 255 文字超は 400", async ({
     request,
   }) => {
-    for (const text of [123, null, "   ", "a".repeat(256)]) {
+    for (const text of [123, null, "   ", "a".repeat(256), "a\u0000b"]) {
       const res = await request.post("/api/todos", { data: { text } });
       expect(res.status()).toBe(400);
       expect((await res.json()).success).toBe(false);
@@ -34,7 +34,7 @@ test.describe("API 入力バリデーション", () => {
     });
     const { id } = (await created.json()).data;
 
-    for (const data of [{}, { text: "" }, { text: 1 }, { completed: "yes" }]) {
+    for (const data of [{}, { text: "" }, { text: 1 }, { text: "a\u0000b" }, { completed: "yes" }]) {
       const res = await request.put(`/api/todos/${id}`, { data });
       expect(res.status()).toBe(400);
     }

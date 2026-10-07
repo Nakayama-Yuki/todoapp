@@ -40,6 +40,9 @@ export function validateTodoText(
   if (typeof value !== "string") {
     return { ok: false, error: "Todo text must be a string" };
   }
+  if (value.includes("\u0000")) {
+    return { ok: false, error: "Todo text must not contain null characters" };
+  }
   const text = value.trim();
   if (text === "") {
     return { ok: false, error: "Todo text is required" };
