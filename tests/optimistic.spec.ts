@@ -109,6 +109,56 @@ test.describe("Optimistic todo updates", () => {
     await deleteTodo(item);
   });
 
+  test("disables a todo row until a delayed toggle settles", async ({
+    page,
+  }) => {
+    const item = await createTodo(page, generateTodoText("Serialized toggle"));
+    const id = (await item.getAttribute("data-testid"))!.replace(
+      "todo-item-",
+      "",
+    );
+    const checkbox = item.getByRole("checkbox");
+    const gate = createRequestGate();
+    const bodies: string[] = [];
+
+    await page.route(`/api/todos/${id}`, async (route) => {
+      if (route.request().method() === "PUT") {
+        bodies.push(route.request().postData() ?? "");
+        if (bodies.length === 1) {
+          gate.markStarted();
+          await gate.request;
+        }
+      }
+      await route.continue();
+    });
+
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.url().endsWith(`/api/todos/${id}`) &&
+        response.request().method() === "PUT",
+    );
+    await checkbox.click();
+    await gate.started;
+    await expect(checkbox).toBeChecked();
+    await expect(checkbox).toBeDisabled();
+    await expect(item.getByRole("button", { name: "消す" })).toBeDisabled();
+    await checkbox.click({ force: true });
+    expect(bodies).toHaveLength(1);
+
+    gate.release();
+    expect((await responsePromise).status()).toBe(200);
+    await expect(checkbox).toBeEnabled();
+    await expect(checkbox).toBeChecked();
+    expect(bodies).toHaveLength(1);
+    expect(JSON.parse(bodies[0])).toEqual({ completed: true });
+
+    await page.reload();
+    await expect(
+      page.getByTestId(`todo-item-${id}`).getByRole("checkbox"),
+    ).toBeChecked();
+    await page.unroute(`/api/todos/${id}`);
+    await deleteTodo(page.getByTestId(`todo-item-${id}`));
+  });
   test("shows an edited todo before the update request completes", async ({
     page,
   }) => {

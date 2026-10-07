@@ -8,6 +8,7 @@ export interface Todo {
 
 export interface TaskListProps {
   todos: Todo[];
+  pendingToggleIds: ReadonlySet<number>;
   toggleTodo: (id: number) => void;
   deleteTodo: (id: number) => void;
   updateTodo: (id: number, newText: string) => Promise<boolean>;

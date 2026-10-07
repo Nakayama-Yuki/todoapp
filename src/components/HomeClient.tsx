@@ -62,6 +62,10 @@ export default function HomeClient({
   );
   const [, startTransition] = useTransition();
   const nextTemporaryId = useRef(-1);
+  const togglingIds = useRef(new Set<number>());
+  const [pendingToggleIds, setPendingToggleIds] = useState<Set<number>>(
+    () => new Set(),
+  );
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const { theme, toggleTheme } = useTheme();
@@ -112,8 +116,12 @@ export default function HomeClient({
    * Todoの完了状態を切り替える関数
    */
   function toggleTodo(id: number): void {
+    if (togglingIds.current.has(id)) return;
     const todo = optimisticTodos.find((t) => t.id === id);
     if (!todo) return;
+
+    togglingIds.current.add(id);
+    setPendingToggleIds(new Set(togglingIds.current));
 
     startTransition(async () => {
       setOptimisticTodos({
@@ -144,6 +152,9 @@ export default function HomeClient({
       } catch (error) {
         console.error("Error toggling todo:", error);
         setError("Todoの更新に失敗しました");
+      } finally {
+        togglingIds.current.delete(id);
+        setPendingToggleIds(new Set(togglingIds.current));
       }
     });
   }
@@ -292,6 +303,7 @@ export default function HomeClient({
       <AddTask input={input} setInput={setInput} addTodo={addTodo} />
       <TaskList
         todos={optimisticTodos}
+        pendingToggleIds={pendingToggleIds}
         toggleTodo={toggleTodo}
         deleteTodo={deleteTodo}
         updateTodo={updateTodo}

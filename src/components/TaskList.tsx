@@ -8,6 +8,7 @@ import { useTheme } from "@/context/themeContext"; // 追加
  */
 export default function TaskList({
   todos,
+  pendingToggleIds,
   toggleTodo,
   deleteTodo,
   updateTodo,
@@ -59,7 +60,9 @@ export default function TaskList({
               className="shrink-0"
               onChange={() => toggleTodo(todo.id)}
               checked={todo.completed}
-              disabled={isPending || todo.id < 0}
+              disabled={
+                isPending || todo.id < 0 || pendingToggleIds.has(todo.id)
+              }
             />
             {editId === todo.id ?
               <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -105,7 +108,9 @@ export default function TaskList({
               </button>
             : <button
                 onClick={() => handleEdit(todo.id, todo.text)}
-                disabled={isPending || todo.id < 0}
+                disabled={
+                  isPending || todo.id < 0 || pendingToggleIds.has(todo.id)
+                }
                 className="bg-yellow-600 text-white p-1 rounded-sm disabled:cursor-not-allowed disabled:opacity-50"
               >
                 編集
@@ -113,9 +118,11 @@ export default function TaskList({
             }
             <button
               onClick={() => deleteTodo(todo.id)}
-              disabled={isPending || todo.id < 0}
+              disabled={
+                isPending || todo.id < 0 || pendingToggleIds.has(todo.id)
+              }
               className={`bg-red-600 text-white p-1 rounded-sm ${
-                isPending || todo.id < 0 ?
+                isPending || todo.id < 0 || pendingToggleIds.has(todo.id) ?
                   "opacity-50 cursor-not-allowed"
                 : ""
               }`}
