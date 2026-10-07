@@ -23,6 +23,7 @@ export async function createTodo(page: Page, text: string): Promise<Locator> {
   await page.getByRole("button", { name: "追加する" }).click();
   const item = page.locator("li", { hasText: text }).first();
   await expect(item).toBeVisible();
+  await expect(item).toHaveAttribute("data-testid", /^todo-item-[1-9]\d*$/);
 
   const testId = await item.getAttribute("data-testid");
   expect(testId).toBeTruthy();
