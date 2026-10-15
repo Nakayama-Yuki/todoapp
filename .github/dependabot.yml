@@ -1,5 +1,11 @@
 version: 2
 updates:
+  # Dockerfile と docker-compose.yml のイメージ
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
   # GitHub Actions versions
   - package-ecosystem: "github-actions"
     directory: "/"
