@@ -20,20 +20,20 @@
     "postgres:logs": "docker-compose -f docker-compose.dev.yml logs postgres"
   },
   "dependencies": {
-    "next": "^16.4.0",
+    "next": "16.4.2",
     "next-auth": "5.0.0-beta.32",
     "pg": "^8.23.1",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@next/eslint-plugin-next": "16.4.0",
-    "@playwright/test": "^1.64.0",
+    "@next/eslint-plugin-next": "16.4.2",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/turbopack": "^4.3.3",
     "@types/node": "^24.19.2",
     "@types/pg": "^8.23.1",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "eslint": "^10.13.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
