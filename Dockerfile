@@ -1,7 +1,7 @@
 # syntax=docker.io/docker/dockerfile:1
 
-# Node.js 24系の Alpine Linux ベースイメージを使用
-FROM node:26-alpine AS base
+# Node.js LTS の Alpine Linux ベースイメージを使用
+FROM node:lts-alpine AS base
 
 # ========================================
 # 依存関係インストール段階
