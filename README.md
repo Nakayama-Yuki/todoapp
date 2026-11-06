@@ -123,23 +123,23 @@ PostgreSQL 17 以前のデータを引き継ぐ必要がなければ、通常の
 ## テスト
 
 ```bash
-# テストを実行
+# テストを実行（デフォルトはヘッドレスモード）
 pnpm test
 
 # テストを UI モードで実行
-pnpm test:ui
+pnpm test --ui
 
-# テストをヘッドレスモードで実行
-pnpm test:headless
+# ブラウザを表示してテストを実行
+pnpm test --headed
 ```
 
 ### テストの構成
 
-- **E2E テスト**: `tests/example.spec.ts`
+- **E2E テスト**: `tests/*.spec.ts`
   - ブラウザ上での実際のユーザー操作をシミュレート
   - Todo の追加、編集、削除、完了状態の切り替えなどの統合テスト
   - テーマ切り替えなどの UI インタラクションテスト
-  - Playwright による複数ブラウザでのクロスブラウザテスト対応
+  - 現在は Chromium で実行（`playwright.config.ts` で設定）
 
 ## データベース管理コマンド
 
@@ -221,7 +221,11 @@ todo-app/
 │   └── types/
 │       └── type.ts            # TypeScript型定義
 ├── tests/
-│   └── example.spec.ts        # Playwright E2Eテスト
+│   ├── todo-*.spec.ts         # Todo の追加・編集・削除・完了切り替え
+│   ├── api-validation.spec.ts # API 入力検証
+│   ├── integration.spec.ts    # 統合テスト
+│   ├── theme.spec.ts          # テーマ切り替え
+│   └── helpers.ts             # テスト共通処理
 ├── docker-compose.dev.yml     # 開発: PostgreSQLのみDockerで起動
 ├── docker-compose.prod.yml    # 本番: Next.js + PostgreSQL をDockerで起動
 ├── Dockerfile                 # Docker ビルド設定
