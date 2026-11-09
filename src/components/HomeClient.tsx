@@ -220,20 +220,28 @@ export default function HomeClient({
         </div>
       )}
 
-      <AddTask input={input} setInput={setInput} addTodo={addTodo} />
-      <TaskList
-        todos={todos}
-        toggleTodo={toggleTodo}
-        deleteTodo={deleteTodo}
-        updateTodo={updateTodo}
-      />
+      {isAuthEnabled && !isAuthenticated ? (
+        <p role="status">メモを表示・編集するにはGitHubでログインしてください。</p>
+      ) : (
+        <>
+          <AddTask input={input} setInput={setInput} addTodo={addTodo} />
+          <TaskList
+            todos={todos}
+            toggleTodo={toggleTodo}
+            deleteTodo={deleteTodo}
+            updateTodo={updateTodo}
+          />
+        </>
+      )}
 
       {/* データベース接続状態の表示 */}
-      <div className="mt-8 text-sm">
-        <p className={theme === "dark" ? "text-gray-300" : "text-gray-600"}>
-          💾 PostgreSQLデータベースに接続中 (合計: {todos.length}件)
-        </p>
-      </div>
+      {(!isAuthEnabled || isAuthenticated) && (
+        <div className="mt-8 text-sm">
+          <p className={theme === "dark" ? "text-gray-300" : "text-gray-600"}>
+            💾 PostgreSQLデータベースに接続中 (合計: {todos.length}件)
+          </p>
+        </div>
+      )}
     </div>
   );
 }

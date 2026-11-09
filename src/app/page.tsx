@@ -4,43 +4,42 @@ import { Todo } from "@/types/type";
 import HomeClient from "@/components/HomeClient";
 import LoadingFallback from "@/components/LoadingFallback";
 import { getDbPool } from "@/lib/db";
-import { auth, isAuthEnabled } from "@/auth";
+import { isAuthEnabled } from "@/auth";
+import { getTodoAccess } from "@/lib/todo-access";
+import LoadError from "@/components/LoadError";
 
 // DB から Todo リストを取得する関数
-async function fetchTodos(): Promise<Todo[]> {
-  try {
-    const pool = getDbPool();
-    const result = await pool.query(
-      "SELECT id, text, completed, created_at FROM todos ORDER BY created_at DESC",
-    );
-
-    return result.rows.map((row) => ({
-      id: row.id,
-      text: row.text,
-      completed: row.completed,
-      created_at: row.created_at.toISOString(),
-    }));
-  } catch (error) {
-    console.error("Error fetching todos:", error);
-    return [];
-  }
+async function fetchTodos(ownerId: string | null): Promise<Todo[]> {
+  const result = await getDbPool().query(
+    "SELECT id, text, completed, created_at, updated_at FROM todos WHERE owner_id IS NOT DISTINCT FROM $1::text ORDER BY created_at DESC",
+    [ownerId],
+  );
+  return result.rows.map((row) => ({
+    ...row,
+    created_at: row.created_at?.toISOString(),
+    updated_at: row.updated_at?.toISOString(),
+  }));
 }
 
-// Todo リストを取得して HomeClient に渡すコンポーネント
 async function TodosLoader() {
   await connection();
-  const [initialTodos, session] = await Promise.all([
-    fetchTodos(),
-    isAuthEnabled ? auth() : Promise.resolve(null),
-  ]);
-  const userName = session?.user?.name ?? session?.user?.email ?? null;
-
+  const access = await getTodoAccess();
+  let initialTodos: Todo[] = [];
+  if (access) {
+    try {
+      initialTodos = await fetchTodos(access.ownerId);
+    } catch (error) {
+      console.error("Error fetching todos:", error);
+      return <LoadError />;
+    }
+  }
+  const session = access?.session;
   return (
     <HomeClient
       initialTodos={initialTodos}
       isAuthEnabled={isAuthEnabled}
       isAuthenticated={!!session?.user}
-      userName={userName}
+      userName={session?.user?.name ?? session?.user?.email ?? null}
     />
   );
 }

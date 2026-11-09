@@ -85,6 +85,20 @@ AUTH_GITHUB_SECRET="GitHub OAuth Client Secret"
 
 `AUTH_GITHUB_ID` と `AUTH_GITHUB_SECRET` が未設定のときは、アプリは GitHub ログインを無効化した状態で起動します。E2E や CI で認証フローを使わない場合は、この状態でも動作します。
 
+両方未設定の場合は、所有者未設定のメモを共有するモードです。アクセスできる人は共有メモを編集・削除できます。公開環境では両方と `AUTH_SECRET` を設定してください。一方だけ設定した場合も認証必須となり、共有モードには戻りません。
+
+GitHubログインが有効な場合は、ログインが必須となり、メモはGitHubアカウントの不変IDで分離されます。未ログインのTodo APIは401、他ユーザーのメモへの更新・削除は404を返します。
+
+### 既存DBの更新
+
+更新版のアプリを起動する前に、既存DBへ非破壊のスキーマ更新を適用してください。Dockerの初期化SQLは既存ボリュームには自動適用されません。
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f init.sql
+```
+
+既存メモは `owner_id = NULL` のまま保持します。GitHubログイン後の個人リストには表示せず、最初のログインユーザーへの自動割当は行いません。個人メモへ移す場合は、管理者が所有者を確認したうえで対象行の `owner_id` を `github:<GitHubの数値ユーザーID>` に設定してください。
+
 デフォルトの`.env`はすべての環境で共通です。
 
 ### 2.5 GitHub OAuth App の作成
@@ -125,6 +139,12 @@ PostgreSQL 17 以前のデータを引き継ぐ必要がなければ、通常の
 ```bash
 # テストを実行（デフォルトはヘッドレスモード）
 pnpm test
+
+# 実DBでスキーマ更新を検証（DATABASE_URLが必要）
+pnpm test:db
+
+# 認証・所有者分離・DB障害と再試行を検証（先に pnpm build）
+pnpm test:security
 
 # テストを UI モードで実行
 pnpm test --ui
@@ -241,7 +261,8 @@ todo-app/
 
 ## 開発者向けメモ
 
-- データベースの初期データは `init.sql` で設定
+- `init.sql` はスキーマのみを初期化し、再実行しても既存のメモ・IDを保持します。サンプルデータは自動挿入しません。
+- `DATABASE_URL` を設定して `pnpm test:db` を実行すると、一時スキーマで初期化の再実行・データ保持・更新トリガーを検証します（一時スキーマは終了時に削除）。
 - API Routes は `/src/app/api/` ディレクトリ内に配置
 - TypeScript の型定義は `/src/types/type.ts` で管理
 - データベース接続は `/src/lib/db.ts` で管理
