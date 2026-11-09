@@ -1,3 +1,4 @@
+import { getTodoAccess } from "@/lib/todo-access";
 import { NextRequest, NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
 import { Todo, ApiResponse } from "@/types/type";
@@ -17,6 +18,8 @@ export async function PUT(
 ): Promise<NextResponse<ApiResponse<Todo>>> {
   const params = await props.params;
   try {
+    const access = await getTodoAccess();
+    if (!access) return errorResponse("Authentication required", 401);
     const todoId = parseTodoId(params.id);
     if (todoId === null) return errorResponse("Invalid todo ID", 400);
 
@@ -46,25 +49,9 @@ export async function PUT(
 
     const pool = getDbPool();
 
-    // 既存のTodoをチェック
-    const existingResult = await pool.query(
-      "SELECT id FROM todos WHERE id = $1",
-      [todoId],
-    );
-
-    if (existingResult.rows.length === 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Todo not found",
-        },
-        { status: 404 },
-      );
-    }
-
     // 更新クエリを動的に構築
     const updateFields: string[] = [];
-    const updateValues: (string | number | boolean)[] = [];
+    const updateValues: (string | number | boolean | null)[] = [];
     let paramIndex = 1;
 
     if (validatedText !== undefined) {
@@ -81,16 +68,17 @@ export async function PUT(
 
     // updated_atを自動更新
     updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
-    updateValues.push(todoId);
+    updateValues.push(todoId, access.ownerId);
 
     const query = `
       UPDATE todos 
       SET ${updateFields.join(", ")} 
-      WHERE id = $${paramIndex}
+      WHERE id = $${paramIndex} AND owner_id IS NOT DISTINCT FROM $${paramIndex + 1}::text
       RETURNING id, text, completed, created_at, updated_at
     `;
 
     const result = await pool.query(query, updateValues);
+    if (result.rows.length === 0) return errorResponse("Todo not found", 404);
     const updatedTodo: Todo = result.rows[0];
 
     return NextResponse.json({
@@ -118,6 +106,8 @@ export async function DELETE(
 ): Promise<NextResponse<ApiResponse<null>>> {
   const params = await props.params;
   try {
+    const access = await getTodoAccess();
+    if (!access) return errorResponse("Authentication required", 401);
     const todoId = parseTodoId(params.id);
     if (todoId === null) return errorResponse("Invalid todo ID", 400);
 
@@ -125,8 +115,8 @@ export async function DELETE(
 
     // Todoを削除
     const result = await pool.query(
-      "DELETE FROM todos WHERE id = $1 RETURNING id",
-      [todoId],
+      "DELETE FROM todos WHERE id = $1 AND owner_id IS NOT DISTINCT FROM $2::text RETURNING id",
+      [todoId, access.ownerId],
     );
 
     if (result.rows.length === 0) {

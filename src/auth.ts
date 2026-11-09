@@ -5,11 +5,20 @@ const hasGitHubCredentials =
   Boolean(process.env.AUTH_GITHUB_ID) &&
   Boolean(process.env.AUTH_GITHUB_SECRET);
 
-export const isAuthEnabled = hasGitHubCredentials;
+// 設定漏れで共有モードへ戻り、既存メモを公開しない。
+export const isAuthEnabled = Boolean(
+  process.env.AUTH_GITHUB_ID || process.env.AUTH_GITHUB_SECRET,
+);
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost:
     process.env.AUTH_TRUST_HOST === "true" || process.env.CI === "true",
   secret: process.env.AUTH_SECRET,
   providers: hasGitHubCredentials ? [GitHub] : [],
+  callbacks: {
+    session({ session, token }) {
+      if (session.user && token.sub) session.user.id = token.sub;
+      return session;
+    },
+  },
 });

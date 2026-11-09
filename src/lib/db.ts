@@ -21,7 +21,7 @@ export function getDbPool(): Pool {
     // 接続エラーハンドリング
     pool.on("error", (err) => {
       console.error("Unexpected error on idle client", err);
-      process.exit(-1);
+      // アイドル接続の障害でサーバーを終了せず、次の要求で再接続する。
     });
   }
 

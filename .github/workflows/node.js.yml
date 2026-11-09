@@ -71,6 +71,9 @@ jobs:
         env:
           PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
 
+      - name: Verify non-destructive database initialization
+        run: pnpm test:db
+
       # ステップ5: Next.jsビルドキャッシュを復元
       - name: Cache Next.js build
         uses: actions/cache@v6
@@ -96,6 +99,9 @@ jobs:
       # ステップ8: テストを実行
       - name: Run tests
         run: pnpm exec playwright test
+
+      - name: Verify ownership and database failure recovery
+        run: pnpm test:security
 
       # ステップ9: Playwrightのテストレポートをアップロード
       - uses: actions/upload-artifact@v7
