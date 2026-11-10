@@ -1,358 +1,122 @@
 # Todo App with PostgreSQL
 
-Next.js 16 + React 19 + PostgreSQL を使用した Todo アプリケーションです。
+Next.js App Router、React、TypeScript、Tailwind CSS v4、PostgreSQL 18 を使う Todo アプリです。追加・編集・削除・完了切替・テーマ変更と、Auth.js による GitHub ログインに対応します。依存バージョンと全コマンドは [package.json](package.json) を参照してください。
 
-Auth.js (next-auth v5 beta) + GitHub OAuth による認証機能を含みます。
+## 前提
 
-## 技術スタック
+Node.js LTS、pnpm、PostgreSQL 18（ローカルまたは Docker）を用意します。付属スクリプトは `docker-compose` コマンドを使用します。環境が `docker compose` のみを提供する場合は、対応する Compose ファイルを指定して直接実行してください。
 
-- **Frontend**: Next.js 16, React 19, TypeScript 5, Tailwind CSS v4
-- **Backend**: Next.js API Routes
-- **Database**: PostgreSQL 18 (Docker)
-- **Authentication**: Auth.js (next-auth v5 beta), GitHub OAuth
-- **Testing**: Playwright
-- **Package Manager**: pnpm
-
-## 環境変数の設定について
-
-このプロジェクトでは単一の`.env`ファイルで環境管理を統一しています。
-
-### ファイル構成
-
-- `.env` - 統合環境変数ファイル（Git 管理対象・秘密情報なし）
-- `.env.local.example` - ローカル開発用設定テンプレート（Git 管理対象）
-- `.env.local` - ローカル上書き設定（Git 除外・オプション）
-
-### 認証関連の環境変数
-
-| 変数名               | 説明                       | 設定先（推奨） |
-| -------------------- | -------------------------- | -------------- |
-| `AUTH_SECRET`        | セッション暗号化キー       | `.env.local`   |
-| `AUTH_GITHUB_ID`     | GitHub OAuth Client ID     | `.env.local`   |
-| `AUTH_GITHUB_SECRET` | GitHub OAuth Client Secret | `.env.local`   |
-
-`AUTH_SECRET` は以下で生成できます：
+## ローカルセットアップ
 
 ```bash
-openssl rand -base64 32
-```
-
-### GitHub Actions での設定
-
-GitHub Actions（CI/CD）では以下の Secrets が必要です：
-
-| Secret 名            | 説明                 | 例                        |
-| -------------------- | -------------------- | ------------------------- |
-| `POSTGRES_DB`        | データベース名       | `todoapp`                 |
-| `POSTGRES_USER`      | ユーザー名           | `todouser`                |
-| `POSTGRES_PASSWORD`  | パスワード           | `your_secure_password`    |
-| `AUTH_SECRET`        | 認証用シークレット   | `generated_random_string` |
-| `AUTH_GITHUB_ID`     | GitHub Client ID     | `Ov23...`                 |
-| `AUTH_GITHUB_SECRET` | GitHub Client Secret | `xxxx...`                 |
-
-`DATABASE_URL`は上記 3 つの Secrets から自動生成されます。
-
-**Secrets の設定方法:**
-
-1. GitHub リポジトリの **Settings** → **Secrets and variables** → **Actions** を開く
-2. **New repository secret** をクリックして各 Secret を追加
-3. `.env`に定義された値と一致するように設定
-
-## セットアップ方法
-
-### 1. 依存関係のインストール
-
-```bash
+git clone https://github.com/Nakayama-Yuki/todoapp.git
+cd todoapp
 pnpm install
-```
-
-### 2. 環境変数の設定（ローカル開発の場合）
-
-Docker なしでローカル開発する場合は`.env.local`を作成：
-
-```bash
 cp .env.local.example .env.local
 ```
 
-`.env.local` に認証用の値を設定してください：
+`.env` は Compose 用の共有設定、`.env.local` は Next.js のローカル上書き設定です。`.env.local` の `DATABASE_URL` を利用する DB に合わせて編集します。Docker の DB ならホストは `localhost`、DB名・ユーザー・パスワードは `.env` の `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` に合わせます。秘密情報は共有設定に追加しないでください。
 
 ```bash
-AUTH_SECRET="生成したランダム文字列"
-AUTH_TRUST_HOST="true" # 特殊ホストやCIで必要な場合のみ
-AUTH_GITHUB_ID="GitHub OAuth Client ID"
-AUTH_GITHUB_SECRET="GitHub OAuth Client Secret"
-```
-
-`AUTH_GITHUB_ID` と `AUTH_GITHUB_SECRET` が未設定のときは、アプリは GitHub ログインを無効化した状態で起動します。E2E や CI で認証フローを使わない場合は、この状態でも動作します。
-
-両方未設定の場合は、所有者未設定のメモを共有するモードです。アクセスできる人は共有メモを編集・削除できます。公開環境では両方と `AUTH_SECRET` を設定してください。一方だけ設定した場合も認証必須となり、共有モードには戻りません。
-
-GitHubログインが有効な場合は、ログインが必須となり、メモはGitHubアカウントの不変IDで分離されます。未ログインのTodo APIは401、他ユーザーのメモへの更新・削除は404を返します。
-
-### 既存DBの更新
-
-更新版のアプリを起動する前に、既存DBへ非破壊のスキーマ更新を適用してください。Dockerの初期化SQLは既存ボリュームには自動適用されません。
-
-```bash
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f init.sql
-```
-
-既存メモは `owner_id = NULL` のまま保持します。GitHubログイン後の個人リストには表示せず、最初のログインユーザーへの自動割当は行いません。個人メモへ移す場合は、管理者が所有者を確認したうえで対象行の `owner_id` を `github:<GitHubの数値ユーザーID>` に設定してください。
-
-デフォルトの`.env`はすべての環境で共通です。
-
-### 2.5 GitHub OAuth App の作成
-
-1. GitHub → **Settings** → **Developer settings** → **OAuth Apps** → **New OAuth App**
-2. 以下を設定
-   - **Homepage URL**: `http://localhost:3000`
-   - **Authorization callback URL**: `http://localhost:3000/api/auth/callback/github`
-3. 発行された Client ID / Client Secret を `.env.local` に設定
-
-### 3. Docker コンテナの起動
-
-```bash
-# 開発環境: PostgreSQL（DB）のみDockerで起動
-pnpm run docker:dev
-
-# アプリケーションはローカルで起動（ホットリロード）
+# DB のみ起動（既存の PostgreSQL を使う場合は不要）
+pnpm docker:dev
+# DB が接続可能になったら Next.js を起動
 pnpm dev
-
-# 本番環境: Next.js と PostgreSQL をDockerで起動
-# （.env の NODE_ENV など値を変更して実行）
-pnpm run docker:prod
-
-# サービスのログを確認
-pnpm run docker:logs       # 開発（DBのみ）
-pnpm run prod:logs         # 本番（アプリ+DB）
 ```
 
-PostgreSQL 17 以前のデータを引き継ぐ必要がなければ、通常の起動コマンドで PostgreSQL 18 を新規利用できます。コンテナを削除しても名前付きボリュームのデータは残るため、不要なデータを完全に削除する場合は Docker のボリュームも別途削除してください。17 のデータを残しておきたい場合は、新旧のメジャーバージョンで同じデータボリュームを共有しないでください。
+画面は http://localhost:3000 です。Compose は `init.sql` を初回の空ボリュームに適用します。既存 DB のスキーマ更新は別途適用してください。`init.sql` の再実行では既存データ・IDを保持し、サンプルメモは自動追加しません。
 
-### 4. アプリケーションへのアクセス
+## 認証とデータの範囲
 
-- **開発環境**: http://localhost:3000
-- **本番環境**: http://localhost:3000
+`.env.local` の `AUTH_GITHUB_ID` と `AUTH_GITHUB_SECRET` が両方未設定なら、`owner_id = null` のローカル共有メモを利用します。認証情報のどちらかを設定すると認証が有効になり、未ログインのままメモを操作できません。ログインユーザーごとのメモと共有メモは分離されています。
 
-## テスト
+GitHub ログインを使う場合は OAuth App を作成し、次を設定します。
+
+| 変数 | 内容 |
+| --- | --- |
+| `AUTH_SECRET` | `openssl rand -base64 32` などで生成するセッション用秘密値 |
+| `AUTH_GITHUB_ID` | GitHub OAuth Client ID |
+| `AUTH_GITHUB_SECRET` | GitHub OAuth Client Secret |
+| `AUTH_TRUST_HOST` | 必要なホスト／プロキシ構成に応じて設定 |
+
+ローカルの Homepage URL は `http://localhost:3000`、Callback URL は `http://localhost:3000/api/auth/callback/github` です。
+
+## ビルド・検証
 
 ```bash
-# テストを実行（デフォルトはヘッドレスモード）
-pnpm test
-
-# 実DBでスキーマ更新を検証（DATABASE_URLが必要）
-pnpm test:db
-
-# 認証・所有者分離・DB障害と再試行を検証（先に pnpm build）
-pnpm test:security
-
-# テストを UI モードで実行
-pnpm test --ui
-
-# ブラウザを表示してテストを実行
-pnpm test --headed
-```
-
-### テストの構成
-
-- **E2E テスト**: `tests/*.spec.ts`
-  - ブラウザ上での実際のユーザー操作をシミュレート
-  - Todo の追加、編集、削除、完了状態の切り替えなどの統合テスト
-  - テーマ切り替えなどの UI インタラクションテスト
-  - 現在は Chromium で実行（`playwright.config.ts` で設定）
-
-## データベース管理コマンド
-
-```bash
-# PostgreSQLコンテナのみを起動
-pnpm run postgres:up
-
-# 開発環境を停止
-pnpm run dev:down
-
-# 本番環境を停止
-pnpm run prod:down
-
-# PostgreSQLのログを表示
-pnpm run postgres:logs
-
-# 開発環境の状態を確認
-pnpm run docker:ps
-
-# 本番環境の状態を確認
-pnpm run prod:ps
-```
-
-## データベース接続設定
-
-- **Host**: localhost
-- **Port**: 5432
-- **Database**: todoapp
-- **Username**: todouser
-- **Password**: todopass
-
-## 機能
-
-- ✅ Todo の追加
-- ✅ Todo の編集
-- ✅ Todo の削除
-- ✅ 完了状態の切り替え
-- ✅ ダークモード対応
-- ✅ GitHub ログイン / ログアウト
-- ✅ ログインユーザー表示
-- ✅ PostgreSQL でのデータ永続化
-- ✅ リアルタイムでデータベースと同期
-
-## API エンドポイント
-
-- `GET /api/todos` - 全ての Todo を取得
-- `POST /api/todos` - 新しい Todo を作成
-- `PUT /api/todos/[id]` - Todo を更新
-- `DELETE /api/todos/[id]` - Todo を削除
-- `GET /api/auth/signin` - サインインページ表示
-- `GET /api/auth/signin/github` - GitHub OAuth 開始
-- `GET/POST /api/auth/callback/github` - GitHub OAuth コールバック
-- `POST /api/auth/signout` - サインアウト
-- `GET /api/auth/session` - セッション情報取得
-
-## プロジェクト構成
-
-```
-todo-app/
-├── src/
-│   ├── app/
-│   │   ├── api/auth/[...nextauth]/route.ts # Auth.js ハンドラー
-│   │   ├── api/todos/          # API Routes
-│   │   │   ├── route.ts        # GET/POST endpoints
-│   │   │   └── [id]/route.ts   # PUT/DELETE endpoints
-│   │   ├── layout.tsx
-│   │   ├── page.tsx            # メインページ
-│   │   └── globals.css
-│   ├── auth.ts                 # Auth.js 設定（GitHub Provider）
-│   ├── components/             # UIコンポーネント
-│   │   ├── AddTask.tsx
-│   │   ├── ChangeTheme.tsx
-│   │   ├── HomeClient.tsx
-│   │   └── TaskList.tsx
-│   ├── context/
-│   │   └── themeContext.tsx    # テーマコンテキスト
-│   ├── lib/
-│   │   └── db.ts              # データベース接続
-│   └── types/
-│       └── type.ts            # TypeScript型定義
-├── tests/
-│   ├── todo-*.spec.ts         # Todo の追加・編集・削除・完了切り替え
-│   ├── api-validation.spec.ts # API 入力検証
-│   ├── integration.spec.ts    # 統合テスト
-│   ├── theme.spec.ts          # テーマ切り替え
-│   └── helpers.ts             # テスト共通処理
-├── docker-compose.dev.yml     # 開発: PostgreSQLのみDockerで起動
-├── docker-compose.prod.yml    # 本番: Next.js + PostgreSQL をDockerで起動
-├── Dockerfile                 # Docker ビルド設定
-├── init.sql                   # データベース初期化
-├── .env                       # 共通環境変数
-├── .env.local                 # ローカル上書き環境変数（Git除外）
-├── .env.local.example         # 環境変数テンプレート
-├── next.config.mjs            # Next.js 設定
-├── tsconfig.json              # TypeScript 設定
-├── playwright.config.ts       # Playwright 設定
-└── package.json
-```
-
-## 開発者向けメモ
-
-- `init.sql` はスキーマのみを初期化し、再実行しても既存のメモ・IDを保持します。サンプルデータは自動挿入しません。
-- `DATABASE_URL` を設定して `pnpm test:db` を実行すると、一時スキーマで初期化の再実行・データ保持・更新トリガーを検証します（一時スキーマは終了時に削除）。
-- API Routes は `/src/app/api/` ディレクトリ内に配置
-- TypeScript の型定義は `/src/types/type.ts` で管理
-- データベース接続は `/src/lib/db.ts` で管理
-
-### Next.js スタンドアローンモードについて
-
-このプロジェクトは `next.config.mjs` で `output: "standalone"` を設定しており、本番環境でのデプロイに最適化されています。
-
-**スタンドアローンモード**とは：
-
-- Next.js アプリケーションを Docker などの軽量なコンテナで実行するための最適化ビルドモード
-- 必要な依存関係のみを含むため、デプロイサイズが削減される
-- Node.js のみで実行可能
-
-**実行方法：**
-
-```bash
-# 開発環境
-pnpm dev
-
-# 本番環境ビルド
+pnpm lint
 pnpm build
-
-# スタンドアローンモードで起動
 pnpm start
 ```
 
-### Docker での環境変数の取り扱い
-
-スタンドアローンモードでは、環境変数の扱いが重要です：
-
-**ビルド時と実行時の環境変数：**
-
-1. **ビルド時の環境変数**：
-   - Dockerfile で `ARG` として定義
-   - `docker-compose.yml` の `build.args` で渡す
-   - ビルド中にのみ使用され、最終イメージには含まれない
-
-2. **実行時の環境変数**：
-   - `docker-compose.yml` の `environment` で設定
-   - コンテナ起動時に読み込まれる
-   - アプリケーションの実行時に必要
-
-**開発環境と本番環境の切り替え：**
+`pnpm start` は `next start` です。通常の E2E は認証情報を未設定にした共有モードで、専用のテスト DB を使って実行します。
 
 ```bash
-# 開発環境（ホットリロード対応）
-docker-compose --env-file .env.dev up -d
-# または
-pnpm run docker:dev
-
-# 本番環境（スタンドアローンモード）
-docker-compose --env-file .env.prod up -d
-# または
-pnpm run docker:prod
+pnpm exec playwright install --with-deps chromium
+pnpm build
+pnpm test
+# UI / ブラウザ表示
+pnpm test --ui
+pnpm test --headed
 ```
 
-**環境変数の設定箇所：**
+`playwright.config.ts` の `webServer` が `pnpm start` を起動するため、事前ビルドが必要です。現在有効なブラウザは Chromium。テストは `tests/*.spec.ts` にあります。
 
-- `Dockerfile`：ビルド時の ARG 定義
-- `docker-compose.yml`：統合 Docker Compose 設定（環境変数を参照）
-- `.env.dev`：開発環境用の実際の値
-- `.env.prod`：本番環境用の実際の値（Git 除外、自分で作成）
-- `.env.local.example`：環境変数のテンプレート
-- `.env.local`：ローカル開発時の設定（Docker 未使用時）
+DB・セキュリティテストは、シェルに専用テスト DB の `DATABASE_URL` を設定して実行します。Next.js の `.env.local` が Node.js テストや Playwright 設定に自動で読み込まれることを前提にしないでください。
 
-詳細は[Next.js 公式ドキュメント](https://nextjs.org/docs/app/api-reference/next-config-js/output)を参照してください。
+```bash
+pnpm test:db
+pnpm test:security
+```
+
+`test:db` は一時スキーマで初期化の再実行・データ保持を確認します。`test:security` はポート3001と専用スキーマを使い、認証・所有者分離・DB障害からの回復を確認します。事前ビルドが必要です。設定は [playwright.security.config.ts](playwright.security.config.ts) と [tests-security/setup.ts](tests-security/setup.ts) を参照してください。
+
+## API
+
+| メソッド | パス | 処理 |
+| --- | --- | --- |
+| GET | `/api/todos` | アクセス可能な所有者の Todo 一覧 |
+| POST | `/api/todos` | Todo 作成 |
+| PUT | `/api/todos/[id]` | Todo 更新 |
+| DELETE | `/api/todos/[id]` | Todo 削除 |
+
+Todo API は `ApiResponse<T>` を返します。認証のルートは `src/app/api/auth/[...nextauth]/route.ts`、アクセス判定は `src/lib/todo-access.ts` にあります。
+
+## 主なファイル
+
+| ファイル・ディレクトリ | 役割 |
+| --- | --- |
+| `src/app/page.tsx` | Suspense 内の初期データ取得・エラー表示 |
+| `src/components/` | Todo UI、テーマ切替、再試行の表示 |
+| `src/auth.ts` / `src/lib/todo-access.ts` | 認証と所有者判定 |
+| `src/lib/db.ts` | PostgreSQL の接続プール |
+| `src/context/themeContext.tsx` | テーマ状態 |
+| `src/types/type.ts` | 共有型 |
+| `tests/` / `tests-db/` / `tests-security/` | E2E・DB・セキュリティ検証 |
+| `next.config.ts` | Next.js・Tailwind の設定 |
+| `init.sql` | DB 初期化・スキーマ |
+
+## Docker
+
+開発用の DB は [docker-compose.dev.yml](docker-compose.dev.yml)、アプリと DB の本番用構成は [docker-compose.prod.yml](docker-compose.prod.yml) です。
+
+```bash
+pnpm docker:logs
+pnpm postgres:logs
+pnpm docker:ps
+pnpm dev:down
+```
+
+現在の `Dockerfile` は `.next/standalone` をコピーしますが、`next.config.ts` に `output: "standalone"` がありません。このため、現状の `pnpm docker:prod` をそのまま使える本番起動手順として扱えません。Docker を使う前に、standalone 出力と Dockerfile の整合性を修正し、ビルド・起動を確認する必要があります。
+
+本番 Compose を使う場合、DB ホストは内部サービス名 `postgres`、`NODE_ENV` は `production` にし、認証変数も Compose の環境へ渡します。Compose の `--env-file .env` は Next.js の `.env.local` を自動的に代用しません。ビルド引数に秘密値を渡す場合も、最終成果物に残らないと決めつけないでください。
+
+PostgreSQL 18 の名前付きボリュームはデータを保持します。停止コマンドはデータ削除を行いません。17以前のデータボリュームをそのまま共有せず、データの移行を別途行ってください。
 
 ## トラブルシューティング
 
-### データベースに接続できない場合
+- DB 接続失敗：DB の起動状態、ポート5432、`DATABASE_URL` と `POSTGRES_*` の一致を確認します。
+- GitHub ログイン失敗：認証変数がすべて設定され、Callback URL が一致しているか確認します。
+- メモが見えない：共有モードとログインユーザーのメモは分離されています。認証状態を確認します。
 
-1. Docker が起動していることを確認
-2. ポート 5432 が使用されていないことを確認
-3. 環境変数が正しく設定されていることを確認
-
-### GitHub ログインに失敗する場合
-
-1. `.env.local` の `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` を確認
-2. `AUTH_SECRET` が設定されていることを確認
-3. OAuth App の Callback URL が `http://localhost:3000/api/auth/callback/github` と一致していることを確認
-
-### データをリセットしたい場合
-
-```bash
-# コンテナとボリュームを削除
-pnpm run dev:down
-pnpm run prod:down
-docker-compose down -v
-
-# 再度起動
-pnpm run docker:dev
-```
+CI の実行手順・必要な Secrets は [.github/workflows/node.js.yml](.github/workflows/node.js.yml)、開発ルールは [AGENTS.md](AGENTS.md) を参照してください。
