@@ -120,3 +120,11 @@ PostgreSQL 18 の名前付きボリュームはデータを保持します。停
 - メモが見えない：共有モードとログインユーザーのメモは分離されています。認証状態を確認します。
 
 CI の実行手順・必要な Secrets は [.github/workflows/node.js.yml](.github/workflows/node.js.yml)、開発ルールは [AGENTS.md](AGENTS.md) を参照してください。
+
+## 型チェック
+
+```bash
+pnpm typecheck
+```
+
+`next typegen` でルート型と `next-env.d.ts` を生成し、`tsc --noEmit` で型を検証します。CI でもビルド前に同じコマンドを実行します。
