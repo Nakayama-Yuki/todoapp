@@ -20,7 +20,9 @@
     "docker:ps": "docker-compose -f docker-compose.dev.yml ps",
     "prod:ps": "docker-compose -f docker-compose.prod.yml ps",
     "postgres:up": "docker-compose -f docker-compose.dev.yml --env-file .env up -d postgres",
-    "postgres:logs": "docker-compose -f docker-compose.dev.yml logs postgres"
+    "postgres:logs": "docker-compose -f docker-compose.dev.yml logs postgres",
+    "test:e2e": "playwright test",
+    "ci:check": "pnpm typecheck && pnpm lint --max-warnings=0"
   },
   "dependencies": {
     "next": "16.4.5",
@@ -41,5 +43,6 @@
     "tailwindcss": "^4.3.5",
     "typescript": "^6.0.3",
     "typescript-eslint": "8.72.1"
-  }
+  },
+  "packageManager": "pnpm@12.21.0"
 }
