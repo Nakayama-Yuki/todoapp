@@ -10,7 +10,7 @@ export default defineConfig({
   globalSetup: "./tests-security/setup.ts",
   workers: 1,
   retries: 0,
-  reporter: "list",
+  reporter: [["list"], ["html", { outputFolder: "playwright-security-report", open: "never" }]],
   use: { baseURL: "http://localhost:3001", ...devices["Desktop Chrome"] },
   webServer: {
     command: "pnpm start --port 3001",

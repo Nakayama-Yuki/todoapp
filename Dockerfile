@@ -2,6 +2,7 @@
 
 # Node.js LTS の Alpine Linux ベースイメージを使用
 FROM node:lts-alpine AS base
+RUN npm install --global pnpm@12.21.0
 
 # ========================================
 # 依存関係インストール段階
@@ -12,16 +13,8 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-# 依存関係のファイルをコピー（pnpmを優先）
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
-
-# パッケージマネージャーに応じて依存関係をインストール
-RUN \
-  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # ========================================
 # ビルド段階
@@ -46,12 +39,7 @@ ARG DATABASE_URL
 ENV DATABASE_URL=${DATABASE_URL}
 
 # アプリケーションをビルド
-RUN \
-  if [ -f yarn.lock ]; then yarn run build; \
-  elif [ -f package-lock.json ]; then npm run build; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
+RUN pnpm build
 
 # ========================================
 # 本番環境実行段階

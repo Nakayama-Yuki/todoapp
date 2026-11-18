@@ -62,3 +62,11 @@ temp/
 # バックアップファイル
 *.backup
 *.bak
+
+# Local credentials and test output
+.env
+.env.*
+.git
+playwright-report
+playwright-security-report
+test-results

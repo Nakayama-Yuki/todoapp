@@ -51,7 +51,7 @@ pnpm test:security
 - `playwright.config.ts` は `pnpm start` を起動するため事前ビルドが必要。通常 E2E は認証情報を未設定にした共有モードと、専用のテスト DB を使用する。
 - DB・セキュリティテストはシェルの `DATABASE_URL` が必要。セキュリティテストの専用スキーマ・ポート・認証設定は `playwright.security.config.ts` と `tests-security/setup.ts` を参照する。
 - 機能追加は対応する E2E、API・認証・DB 変更は関連する DB / セキュリティテストも実行する。未実行の確認は理由を報告する。
-- CI の実行手順と Secrets は `.github/workflows/node.js.yml` を参照する。
+- CI専用DBと実行手順 は `.github/workflows/node.js.yml` を参照する。
 
 ## 文書の管理
 
