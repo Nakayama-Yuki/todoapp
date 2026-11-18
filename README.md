@@ -140,6 +140,6 @@ pnpm build
 pnpm test:e2e
 ```
 
-ブラウザ未導入の場合は `pnpm exec playwright install --with-deps chromium` を実行してください。ワークフローは [共通CI生成スクリプト](https://github.com/Nakayama-Yuki/calculator/blob/1c00b03232e04a008f1ddeb39e6c7a78deed1127/tools/web-ci/README.md) から生成します。
+ブラウザ未導入の場合は `pnpm exec playwright install --with-deps chromium` を実行してください。ワークフローは [.github/workflows/](.github/workflows/) のYAMLを直接編集します。
 
 CIはSecrets不要の一時PostgreSQL（`ci_user` / `ci_password` / `ci_test`）を使用します。ローカルE2Eにも専用DBの接続設定と `init.sql` の適用が必要です。既存データを持つDBでは実行しないでください。
